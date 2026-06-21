@@ -23,16 +23,21 @@ class OCRWorker(QThread):
 
     def run(self):
         try:
-            self.progress.emit("正在加载OCR模型...", 10)
+            self.progress.emit("正在初始化OCR引擎...", 5)
             self.ocr._get_reader()
+            self.progress.emit("正在加载OCR模型...", 15)
             self.progress.emit("正在预处理图片...", 30)
             self.progress.emit("正在识别文字内容...", 60)
             result = self.ocr.parse_product_info(self.image_input)
             self.progress.emit("正在解析日期信息...", 85)
             self.progress.emit("识别完成！", 100)
             self.finished_ok.emit(result)
+        except ImportError as e:
+            self.error.emit(f"OCR_DEPENDENCY_ERROR:{str(e)}")
+        except RuntimeError as e:
+            self.error.emit(f"OCR_RUNTIME_ERROR:{str(e)}")
         except Exception as e:
-            self.error.emit(str(e))
+            self.error.emit(f"OCR_ERROR:{str(e)}")
 
 
 class OCRProgressDialog(QDialog):
@@ -180,7 +185,15 @@ class OCRProgressDialog(QDialog):
         self.accept()
 
     def _on_error(self, error_msg):
-        self.status_label.setText(f"❌ 识别失败: {error_msg}")
+        display_msg = error_msg
+        if error_msg.startswith("OCR_DEPENDENCY_ERROR:"):
+            display_msg = error_msg.replace("OCR_DEPENDENCY_ERROR:", "")
+        elif error_msg.startswith("OCR_RUNTIME_ERROR:"):
+            display_msg = error_msg.replace("OCR_RUNTIME_ERROR:", "")
+        elif error_msg.startswith("OCR_ERROR:"):
+            display_msg = error_msg.replace("OCR_ERROR:", "")
+
+        self.status_label.setText("❌ OCR引擎初始化失败")
         self.status_label.setStyleSheet("color: #DC2626;")
         self.progress_bar.setStyleSheet("""
             QProgressBar {
@@ -193,4 +206,5 @@ class OCRProgressDialog(QDialog):
                 border-radius: 6px;
             }
         """)
+        self.error_detail = display_msg
         self.cancel_btn.setText("关闭")

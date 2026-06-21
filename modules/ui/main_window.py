@@ -12,12 +12,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from config import APP_DISPLAY_NAME, APP_NAME, DB_PATH, APP_DATA_DIR, SCREENSHOT_SHORTCUT, CATEGORIES
 from modules.database import Database
 from modules.reminder import ReminderEngine, calculate_days_remaining, format_days_remaining, get_category_icon
+from modules.ocr_engine import OCREngine
 from modules.ui.sidebar import Sidebar
 from modules.ui.item_card import ItemCard
 from modules.ui.item_dialog import ItemDialog
 from modules.ui.ocr_dialog import OCRProgressDialog
 from modules.ui.notification import NotificationManager
 from modules.ui.screenshot import ScreenshotSelector
+from modules.ui.camera_dialog import CameraDialog
 
 
 class MainWindow(QMainWindow):
@@ -456,12 +458,20 @@ class MainWindow(QMainWindow):
         menu.addSeparator()
 
         camera_action = QAction("📷  调用摄像头", self)
-        camera_action.triggered.connect(self._show_camera_info)
+        camera_action.triggered.connect(self._open_camera)
         menu.addAction(camera_action)
 
         pos = self.mapToGlobal(self.sidebar.add_btn.pos())
         pos.setY(pos.y() + self.sidebar.add_btn.height() + 8)
         menu.exec_(pos)
+
+    def _open_camera(self):
+        dialog = CameraDialog(self)
+        dialog.capture_taken.connect(self._on_camera_capture)
+        dialog.exec_()
+
+    def _on_camera_capture(self, image_array):
+        self._run_ocr(image_array=image_array)
 
     def _show_camera_info(self):
         QMessageBox.information(
@@ -508,8 +518,36 @@ class MainWindow(QMainWindow):
             self._run_ocr(image_path=file_path)
 
     def _run_ocr(self, image_path=None, image_array=None):
+        ocr = OCREngine()
+        if not ocr.is_available():
+            reply = QMessageBox.question(
+                self, "OCR不可用",
+                "⚠️  OCR识别引擎暂时不可用\n\n"
+                "可能原因：EasyOCR依赖不完整或PyTorch版本冲突\n\n"
+                "是否切换到「手动添加」模式？\n"
+                "（您仍可手动输入物品信息）",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Yes
+            )
+            if reply == QMessageBox.Yes:
+                self._add_manual_item()
+            return
+
         dialog = OCRProgressDialog(self, image_path, image_array)
         result = dialog.exec_()
+
+        if hasattr(dialog, 'error_detail') and dialog.error_detail:
+            reply = QMessageBox.question(
+                self, "OCR识别失败",
+                f"❌ OCR识别过程中出现问题：\n\n{dialog.error_detail}\n\n"
+                f"是否切换到「手动添加」模式？",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Yes
+            )
+            if reply == QMessageBox.Yes:
+                self._add_manual_item()
+            return
+
         if result == QDialog.Accepted and dialog.result:
             self._process_ocr_result(dialog.result)
 

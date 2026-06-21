@@ -31,11 +31,27 @@ class OCREngine:
                 import easyocr
                 self._reader = easyocr.Reader(OCR_LANGUAGES, gpu=OCR_GPU, verbose=False)
                 OCR_READER_INSTANCE = self._reader
-            except ImportError:
+            except ImportError as e:
                 raise ImportError(
-                    "EasyOCR未安装，请运行: pip install easyocr"
+                    f"EasyOCR未安装或依赖不完整。\n"
+                    f"错误: {str(e)}\n\n"
+                    f"请运行: pip install easyocr torch torchvision --upgrade"
+                )
+            except Exception as e:
+                raise RuntimeError(
+                    f"EasyOCR初始化失败。\n"
+                    f"错误: {str(e)}\n\n"
+                    f"可能原因：PyTorch/torchvision版本不兼容\n"
+                    f"解决方法：pip install torch torchvision --upgrade"
                 )
         return self._reader
+
+    def is_available(self) -> bool:
+        try:
+            self._get_reader()
+            return True
+        except Exception:
+            return False
 
     def recognize_image(self, image_input, detail: int = 0) -> List[str]:
         reader = self._get_reader()
