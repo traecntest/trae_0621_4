@@ -2,8 +2,8 @@ import os
 import sys
 from PyQt5.QtWidgets import (QSystemTrayIcon, QMenu, QAction, QApplication,
                              QMessageBox)
-from PyQt5.QtCore import QObject, pyqtSignal, QTimer
-from PyQt5.QtGui import QIcon, QPixmap, QPainter, QColor, QFont, QBrush, Qt
+from PyQt5.QtCore import QObject, pyqtSignal, QTimer, Qt
+from PyQt5.QtGui import QIcon, QPixmap, QPainter, QColor, QFont, QBrush
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from config import APP_DISPLAY_NAME, APP_DATA_DIR, DB_PATH
