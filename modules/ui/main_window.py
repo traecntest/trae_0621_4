@@ -3,7 +3,8 @@ import sys
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QScrollArea, QFrame, QLineEdit, QPushButton,
                              QMessageBox, QFileDialog, QShortcut, QDesktopWidget,
-                             QMenu, QAction, QSystemTrayIcon, QApplication, QToolButton)
+                             QMenu, QAction, QSystemTrayIcon, QApplication, QToolButton,
+                             QDialog)
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QFont, QIcon, QKeySequence, QPalette, QColor, QPixmap
 
@@ -454,13 +455,27 @@ class MainWindow(QMainWindow):
 
         menu.addSeparator()
 
-        camera_action = QAction("📷  调用摄像头 (需设备)", self)
-        camera_action.setEnabled(False)
+        camera_action = QAction("📷  调用摄像头", self)
+        camera_action.triggered.connect(self._show_camera_info)
         menu.addAction(camera_action)
 
         pos = self.mapToGlobal(self.sidebar.add_btn.pos())
         pos.setY(pos.y() + self.sidebar.add_btn.height() + 8)
         menu.exec_(pos)
+
+    def _show_camera_info(self):
+        QMessageBox.information(
+            self, "摄像头功能",
+            "📷 摄像头拍摄功能说明\n\n"
+            "由于摄像头设备驱动差异较大，推荐使用以下更稳定的方式：\n\n"
+            "1️⃣  **截图识别** (Ctrl+Shift+S)\n"
+            "    使用电脑自带的相机APP拍照后，按快捷键截图识别\n\n"
+            "2️⃣  **导入图片**\n"
+            "    用手机或相机拍照后，将图片文件导入电脑进行识别\n\n"
+            "3️⃣  **拖拽识别**\n"
+            "    直接将图片文件拖入程序窗口即可自动识别\n\n"
+            "💡  小提示：拍摄时请确保生产日期和保质期清晰对焦"
+        )
 
     def _take_screenshot(self):
         if self.isVisible():
