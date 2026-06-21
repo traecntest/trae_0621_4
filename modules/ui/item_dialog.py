@@ -16,10 +16,15 @@ class ItemDialog(QDialog):
     def __init__(self, parent=None, item_data=None):
         super().__init__(parent)
         self.item_data = item_data
-        self.is_edit = item_data is not None
+        if item_data and 'id' in item_data and item_data['id'] and item_data['id'] > 0:
+            self.is_edit = True
+        else:
+            self.is_edit = False
         self._setup_ui()
         if self.is_edit:
             self._populate_data()
+        elif item_data:
+            self._prefill_data()
 
     def _setup_ui(self):
         self.setWindowTitle("编辑物品" if self.is_edit else "添加物品")
@@ -229,6 +234,27 @@ class ItemDialog(QDialog):
             if self.category_combo.itemData(i) == category:
                 self.category_combo.setCurrentIndex(i)
                 break
+
+    def _prefill_data(self):
+        if 'name' in self.item_data and self.item_data['name']:
+            self.name_edit.setText(self.item_data['name'])
+        if 'location' in self.item_data and self.item_data['location']:
+            self.location_edit.setText(self.item_data['location'])
+        if 'expiry_date' in self.item_data and self.item_data['expiry_date']:
+            try:
+                date_parts = self.item_data['expiry_date'].split('-')
+                if len(date_parts) == 3:
+                    d = QDate(int(date_parts[0]), int(date_parts[1]), int(date_parts[2]))
+                    if d >= QDate.currentDate():
+                        self.expiry_date.setDate(d)
+            except (ValueError, IndexError):
+                pass
+        if 'category' in self.item_data and self.item_data['category']:
+            category = self.item_data['category']
+            for i in range(self.category_combo.count()):
+                if self.category_combo.itemData(i) == category:
+                    self.category_combo.setCurrentIndex(i)
+                    break
 
     def _on_save(self):
         name = self.name_edit.text().strip()

@@ -403,21 +403,23 @@ class MainWindow(QMainWindow):
                 self._on_delete_item(item_id)
 
     def _on_item_saved(self, item_data):
-        if 'id' in item_data:
+        item_id = item_data.get('id')
+        if item_id and item_id > 0:
             self.db.update_item(
-                item_id=item_data['id'],
+                item_id=item_id,
                 name=item_data['name'],
                 expiry_date=item_data['expiry_date'],
                 location=item_data['location'],
                 category=item_data['category']
             )
         else:
-            self.db.add_item(
+            new_id = self.db.add_item(
                 name=item_data['name'],
                 expiry_date=item_data['expiry_date'],
                 location=item_data['location'],
                 category=item_data['category']
             )
+            item_data['id'] = new_id
         self.refresh_items()
         self.sidebar.refresh()
 
@@ -569,11 +571,13 @@ class MainWindow(QMainWindow):
                 "未能从图片中识别出有效的到期日期。\n"
                 "请在弹出的对话框中手动填写到期日期。"
             )
+            from PyQt5.QtCore import QDate
+            current = QDate.currentDate().addDays(7)
+            expiry_date = current.toString("yyyy-MM-dd")
 
         initial_data = {
-            'id': 0,
             'name': product_name,
-            'expiry_date': expiry_date or '2099-12-31',
+            'expiry_date': expiry_date,
             'location': '',
             'category': category
         }
@@ -581,12 +585,6 @@ class MainWindow(QMainWindow):
         confirm_dialog = ItemDialog(self, item_data=initial_data)
         confirm_dialog.setWindowTitle("确认并录入")
         confirm_dialog.item_saved.connect(self._on_item_saved)
-
-        if not expiry_date:
-            from PyQt5.QtCore import QDate
-            current = QDate.currentDate().addDays(7)
-            confirm_dialog.expiry_date.setDate(current)
-
         confirm_dialog.exec_()
 
     def _on_reminder(self, reminders):
